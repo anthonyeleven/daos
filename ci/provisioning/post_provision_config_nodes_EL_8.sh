@@ -89,7 +89,7 @@ post_provision_config_nodes() {
         fi
 
         rpm_test_version="$(echo "$COMMIT_MESSAGE" | sed -ne '/^RPM-test-version: */s/.*: *//p')"
-        if [ -n "$rpm_test_version" ]; then
+        if [ -z "$rpm_test_version" ]; then
             # Disable the daos repo so that the Jenkins job repo is used for daos packages
             sudo dnf config-manager --disable daos-stack-daos-el-8-x86_64-stable-local
         fi
