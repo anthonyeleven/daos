@@ -6,31 +6,22 @@ LSB_RELEASE=redhat-lsb-core
 EXCLUDE_UPGRADE=dpdk,fuse,mercury,daos,daos-\*
 
 bootstrap_dnf() {
-    # hack in the removal of group repos
-    version="$(lsb_release -sr)"
-    version=${version%.*}
-    if dnf repolist | grep "repo.dc.hpdd.intel.com_repository_centos-${version}-x86_64-group_"; then
-        rm -f /etc/yum.repos.d/repo.dc.hpdd.intel.com_repository_{centos-8.4,daos-stack-centos-8}-x86_64-group_.repo
-        for repo in centos-${version}-{base,extras,powertools} epel-el-8; do
-            my_repo="${REPOSITORY_URL}repository/$repo-x86_64-proxy"
-            my_name="${my_repo#*//}"
-            my_name="${my_name//\//_}"
-            echo -e "[${my_name}]
-name=created from ${my_repo}
-baseurl=${my_repo}
-enabled=1
-repo_gpgcheck=0
-gpgcheck=1" >> /etc/yum.repos.d/local-centos-"$repo".repo
-        done
-        my_repo="${REPOSITORY_URL}/repository/daos-stack-el-8-x86_64-stable-local"
-        my_name="${my_repo#*//}"
-        my_name="${my_name//\//_}"
-        echo -e "[${my_name}]
-name=created from ${my_repo}
-baseurl=${my_repo}
-enabled=1
-repo_gpgcheck=0
-gpgcheck=0" >> /etc/yum.repos.d/local-daos-group.repo
+    # Use Artifactory
+    if ! pushd /etc/yum.repos.d/; then
+        echo "Failed to chdir /etc/yum.repos.d/"
+        exit 1
+    fi
+    if ! rm -f *; then
+        echo "Failed to remove repo files"
+        exit 1
+    fi
+    if ! curl -f -O 'https://repo-stage.dc.hpdd.intel.com/artifactory/repo-files/daos_ci-centos8.repo'; then
+        echo "Failed to fetch repo file"
+        exit 1
+    fi
+    if ! popd; then
+        echo "Failed to return to previous directory"
+        exit 1
     fi
 
     systemctl enable postfix.service
