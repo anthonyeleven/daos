@@ -17,7 +17,7 @@ fi
 sudo dnf config-manager --disable daos-stack-daos-el-8-x86_64-stable-local
 
 set -uex
-if ! sudo dnf -y install daos-client; then
+if ! sudo dnf -y install daos-client-"${DAOS_PKG_VERSION}"; then
     echo "Failed to install daos-client"
     dnf repolist || true
     dnf repoquery --qf %{name}-%{evr}\ %repoid daos-client || true
@@ -33,7 +33,7 @@ if ! sudo dnf -y history undo last; then
     exit 1
 fi
 sudo dnf -y erase $OPENMPI_RPM
-sudo dnf -y install daos-client-tests
+sudo dnf -y install daos-client-tests-"${DAOS_PKG_VERSION}"
 if rpm -q $OPENMPI_RPM; then
   echo "$OPENMPI_RPM RPM should not be installed as a dependency of daos-client-tests"
   exit 1
@@ -43,7 +43,7 @@ if ! sudo dnf -y history undo last; then
     dnf history
     exit 1
 fi
-sudo dnf -y install daos-server-tests
+sudo dnf -y install daos-server-tests-"${DAOS_PKG_VERSION}"
 if rpm -q $OPENMPI_RPM; then
   echo "$OPENMPI_RPM RPM should not be installed as a dependency of daos-server-tests"
   exit 1
@@ -53,7 +53,7 @@ if ! sudo dnf -y history undo last; then
     dnf history
     exit 1
 fi
-sudo dnf -y install daos-client-tests-openmpi
+sudo dnf -y install daos-client-tests-openmpi-"${DAOS_PKG_VERSION}"
 if ! rpm -q daos-client; then
   echo "daos-client RPM should be installed as a dependency of daos-client-tests-openmpi"
   exit 1
@@ -75,13 +75,13 @@ if ! sudo dnf -y history undo last; then
     dnf history
     exit 1
 fi
-sudo dnf -y install daos-server
+sudo dnf -y install daos-server-"${DAOS_PKG_VERSION}"
 if rpm -q daos-client; then
   echo "daos-client RPM should not be installed as a dependency of daos-server"
   exit 1
 fi
 
-sudo dnf -y install daos-client-tests-openmpi
+sudo dnf -y install daos-client-tests-openmpi-"${DAOS_PKG_VERSION}"
 
 me=$(whoami)
 for dir in server agent; do
