@@ -17,7 +17,12 @@ fi
 sudo dnf config-manager --disable daos-stack-daos-el-8-x86_64-stable-local
 
 set -uex
-sudo dnf -y install daos-client
+if ! sudo dnf -y install daos-client; then
+    echo "Failed to install daos-client"
+    dnf repolist || true
+    dnf repoquery --qf %{name}-%{evr}\ %repoid daos-client || true
+    exit 1
+fi
 if rpm -q daos-server; then
   echo "daos-server RPM should not be installed as a dependency of daos-client"
   exit 1
