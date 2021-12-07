@@ -70,6 +70,26 @@ post_provision_config_nodes() {
     : "${DAOS_STACK_EL_8_APPSTREAM_REPO:-}"
     if [ -n "${DAOS_STACK_EL_8_APPSTREAM_REPO}" ]; then
         dnf config-manager --disable epel-modular appstream powertools
+        # Use Artifactory
+        if ! pushd /etc/yum.repos.d/; then
+            echo "Failed to chdir /etc/yum.repos.d/"
+            exit 1
+        fi
+        if ! rm -f repo.dc.hpdd.intel.com_repository_*; then
+            echo "Failed to remove repo files"
+            exit 1
+        fi
+        if ! curl -f -O 'https://repo-stage.dc.hpdd.intel.com/artifactory/repo-files/daos_ci-centos8.repo'; then
+            echo "Failed to fetch repo file"
+            exit 1
+        fi
+        if ! popd; then
+            echo "Failed to return to previous directory"
+            exit 1
+        fi
+
+        # Disable the daos repo so that the Jenkins job repo is used for daos packages
+        sudo dnf config-manager --disable daos-stack-daos-el-8-x86_64-stable-local
     fi
     time dnf repolist
 
