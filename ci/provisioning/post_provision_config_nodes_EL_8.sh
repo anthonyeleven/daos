@@ -142,6 +142,8 @@ post_provision_config_nodes() {
 
     distro_custom
 
+    lsb_release -a
+
     # now make sure everything is fully up-to-date
     if ! retry_cmd 600 dnf -y upgrade --exclude "$EXCLUDE_UPGRADE"; then
         dump_repos
