@@ -13,9 +13,6 @@ elif [ "$(lsb_release -si)" = "openSUSE" ]; then
     OPENMPI=gnu-openmpi
 fi
 
-# Disable the daos repo so that the Jenkins job repo is used for daos packages
-sudo dnf config-manager --disable daos-stack-daos-el-8-x86_64-stable-local
-
 set -uex
 if ! sudo dnf -y install daos-client-"${DAOS_PKG_VERSION}"; then
     echo "Failed to install daos-client"
