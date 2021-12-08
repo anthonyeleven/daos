@@ -79,7 +79,8 @@ post_provision_config_nodes() {
             echo "Failed to remove repo files"
             exit 1
         fi
-        if ! curl -f -O 'https://repo-stage.dc.hpdd.intel.com/artifactory/repo-files/daos_ci-centos8.repo'; then
+        repo_server="$(echo "$COMMIT_MESSAGE" | sed -ne '/^Repo-server: */s/.*: *//p')"
+        if ! curl -f -O "https://repo-stage.dc.hpdd.intel.com/artifactory/repo-files/daos_ci-centos8${repo_server:+-$repo_server}.repo"; then
             echo "Failed to fetch repo file"
             exit 1
         fi
@@ -89,7 +90,7 @@ post_provision_config_nodes() {
         fi
 
         rpm_test_version="$(echo "$COMMIT_MESSAGE" | sed -ne '/^RPM-test-version: */s/.*: *//p')"
-        if [ -z "$rpm_test_version" ]; then
+        if [ -z "$rpm_test_version" ] && [ "$repo_server" = "artifactory" ]; then
             # Disable the daos repo so that the Jenkins job repo is used for daos packages
             sudo dnf config-manager --disable daos-stack-daos-el-8-x86_64-stable-local
         fi
