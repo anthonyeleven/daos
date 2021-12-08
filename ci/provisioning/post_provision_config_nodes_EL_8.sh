@@ -80,9 +80,16 @@ post_provision_config_nodes() {
             exit 1
         fi
         repo_server="$(echo "$COMMIT_MESSAGE" | sed -ne '/^Repo-server: */s/.*: *//p')"
-        if ! curl -f -o daos_ci-centos8.repo "https://repo-stage.dc.hpdd.intel.com/artifactory/repo-files/daos_ci-centos8${repo_server:+-$repo_server}.repo"; then
+        if ! curl -f -o daos_ci-centos8.repo \
+                  "https://repo-stage.dc.hpdd.intel.com/artifactory/repo-files/daos_ci-centos8${repo_server:+-$repo_server}.repo"; then
             echo "Failed to fetch repo file"
             exit 1
+        fi
+        # ugly hackery for nexus repo naming
+        if [ -z "$repo_server" ]; then
+            version="$(lsb_release -sr)"
+            version=${version%.*}
+            sed -i -e "s/\$releasever/$version/g" daos_ci-centos8.repo
         fi
         cat daos_ci-centos8.repo
         if ! popd; then
