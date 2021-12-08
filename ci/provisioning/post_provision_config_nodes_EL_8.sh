@@ -139,6 +139,8 @@ post_provision_config_nodes() {
         exit 1
     fi
 
+    lsb_release -a
+
     if [ -f /etc/do-release ]; then
         cat /etc/do-release
     fi
