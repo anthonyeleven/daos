@@ -16,8 +16,8 @@ fi
 set -uex
 if ! sudo dnf -y install daos-client-"${DAOS_PKG_VERSION}"; then
     echo "Failed to install daos-client"
-    dnf repolist || true
-    dnf repoquery --qf %{name}-%{evr}\ %repoid daos-client || true
+    dnf -y repolist || true
+    dnf -y repoquery --qf %{name}-%{evr}\ %repoid daos-client || true
     exit 1
 fi
 if rpm -q daos-server; then
