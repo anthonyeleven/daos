@@ -19,10 +19,12 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/runtime/protoimpl"
 
+	"github.com/daos-stack/daos/src/control/common"
 	"github.com/daos-stack/daos/src/control/common/proto/convert"
 	ctlpb "github.com/daos-stack/daos/src/control/common/proto/ctl"
 	"github.com/daos-stack/daos/src/control/lib/hostlist"
 	"github.com/daos-stack/daos/src/control/server/storage"
+	"github.com/daos-stack/daos/src/control/system"
 )
 
 // MockMessage implements the proto.Message
@@ -539,4 +541,68 @@ func MockFormatResp(t *testing.T, mfc MockFormatConf) *StorageFormatResp {
 		},
 		HostStorage: hsm,
 	}
+}
+
+type (
+	MockStorageConfig struct {
+		TotalBytes uint64
+		AvailBytes uint64
+	}
+
+	MockScmConfig struct {
+		MockStorageConfig
+	}
+
+	MockNvmeConfig struct {
+		MockStorageConfig
+		Rank system.Rank
+	}
+)
+
+func MockStorageScanResp(testRunner *testing.T,
+                         mockScmConfigArray []MockScmConfig,
+                         mockNvmeConfigArray []MockNvmeConfig) *ctlpb.StorageScanResp {
+	serverScanResponse := &ctlpb.StorageScanResp{
+		Nvme: &ctlpb.ScanNvmeResp { },
+		Scm:  &ctlpb.ScanScmResp { },
+	}
+
+	scmNamespaces := make(storage.ScmNamespaces, 0, len(mockScmConfigArray))
+	for index, scmMockConfig := range mockScmConfigArray {
+		scmNamespace := &storage.ScmNamespace {
+			UUID:        common.MockUUID(int32(index)),
+			BlockDevice: fmt.Sprintf("pmem%d", index),
+			Name:        fmt.Sprintf("namespace%d.0", index),
+			NumaNode:    uint32(index),
+			Size:        scmMockConfig.TotalBytes,
+		}
+		if scmMockConfig.TotalBytes > uint64(0) {
+			scmNamespace.Mount = &storage.ScmMountPoint {
+				Class:      storage.ClassDcpm,
+				Path:       fmt.Sprintf("/mnt/daos%d", index),
+				DeviceList: []string{fmt.Sprintf("pmem%d", index)},
+				TotalBytes: scmMockConfig.TotalBytes,
+				AvailBytes: scmMockConfig.AvailBytes,
+			}
+		}
+		scmNamespaces = append(scmNamespaces, scmNamespace)
+	}
+	if err := convert.Types(scmNamespaces, &serverScanResponse.Scm.Namespaces); err != nil {
+		testRunner.Fatal(err)
+	}
+
+	nvmeControllers := make(storage.NvmeControllers, 0, len(mockNvmeConfigArray))
+	for index, nvmeMockConfig := range mockNvmeConfigArray {
+		nvmeController := storage.MockNvmeController(int32(index))
+		smdDevice := nvmeController.SmdDevices[0]
+		smdDevice.AvailBytes = nvmeMockConfig.AvailBytes
+		smdDevice.TotalBytes = nvmeMockConfig.TotalBytes
+		smdDevice.Rank = nvmeMockConfig.Rank
+		nvmeControllers = append(nvmeControllers, nvmeController)
+	}
+	if err := convert.Types(nvmeControllers, &serverScanResponse.Nvme.Ctrlrs); err != nil {
+		testRunner.Fatal(err)
+	}
+
+	return serverScanResponse
 }
