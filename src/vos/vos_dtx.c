@@ -36,6 +36,8 @@ enum {
 
 #define dtx_evict_lid(cont, dae)					\
 	do {								\
+		if (dae->dae_dth != NULL)				\
+			dae->dae_dth->dth_ent = NULL;			\
 		D_DEBUG(DB_TRACE, "Evicting lid "DF_DTI": lid=%d\n",	\
 			DP_DTI(&DAE_XID(dae)), DAE_LID(dae));		\
 		d_list_del_init(&dae->dae_link);			\
@@ -1006,6 +1008,8 @@ vos_dtx_alloc(struct vos_dtx_blob_df *dbd, struct dtx_handle *dth)
 	/* Will be set as dbd::dbd_index via vos_dtx_prepared(). */
 	DAE_INDEX(dae) = DTX_INDEX_INVAL;
 	dae->dae_dbd = dbd;
+	dae->dae_dth = dth;
+
 	D_DEBUG(DB_IO, "Allocated new lid DTX: "DF_DTI" lid=%d dae=%p"
 		" dae_dbd=%p\n", DP_DTI(&dth->dth_xid), DAE_LID(dae), dae, dbd);
 
@@ -1294,14 +1298,17 @@ uint32_t
 vos_dtx_get(void)
 {
 	struct dtx_handle	*dth = vos_dth_get();
-	struct vos_dtx_act_ent	*dae;
 
-	if (!dtx_is_valid_handle(dth) || dth->dth_ent == NULL)
+	if (!dtx_is_valid_handle(dth))
 		return DTX_LID_COMMITTED;
 
-	dae = dth->dth_ent;
+	if (unlikely(dth->dth_cancelled))
+		return DTX_LID_ABORTED;
 
-	return DAE_LID(dae);
+	if (dth->dth_ent == NULL)
+		return DTX_LID_COMMITTED;
+
+	return DAE_LID((struct vos_dtx_act_ent *)dth->dth_ent);
 }
 
 int
@@ -1312,6 +1319,7 @@ vos_dtx_validation(struct dtx_handle *dth)
 
 	D_ASSERT(dtx_is_valid_handle(dth));
 
+	dth->dth_verified = 1;
 	dae = dth->dth_ent;
 
 	/* During current ULT waiting for some event, such as bulk data
@@ -1326,8 +1334,7 @@ vos_dtx_validation(struct dtx_handle *dth)
 	 * not) cache slot.
 	 */
 
-	if (dae == NULL /* resentc case */ ||
-	    !daos_dti_equal(&dth->dth_xid, &DAE_XID(dae))) {
+	if (dae == NULL) {
 		struct vos_container	*cont;
 		d_iov_t			 kiov;
 		d_iov_t			 riov;
@@ -1399,19 +1406,26 @@ vos_dtx_register_record(struct umem_instance *umm, umem_off_t record,
 		return 0;
 	}
 
-	if (dth->dth_pinned) {
+	if (dth->dth_pinned && !dth->dth_verified) {
 		rc = vos_dtx_validation(dth);
 		switch (rc) {
-		case DTX_ST_INITED:
-			break;
 		case DTX_ST_PREPARED:
 		case DTX_ST_COMMITTED:
 		case DTX_ST_COMMITTABLE:
-			/* Prepared/committed (and may has been re-created
-			 * before that), return -DER_AGAIN for leader retry.
+			/* Aborted by race then prepared/committed by race.
+			 * Return -DER_ALREADY to avoid repeated modification.
+			 *
+			 * Reset dth->dth_ent to bypass cleanup.
 			 */
-			D_GOTO(out, rc = -DER_AGAIN);
+			dth->dth_ent = NULL;
+			D_GOTO(out, rc = -DER_ALREADY);
+		case DTX_ST_INITED:
+			if (likely(!dth->dth_cancelled))
+				break;
+			/* Fall through */
 		case DTX_ST_ABORTED:
+			D_ASSERT(dth->dth_ent == NULL);
+			D_ASSERT(dth->dth_cancelled);
 			/* Aborted, return -DER_INPROGRESS for client retry. */
 			D_GOTO(out, rc = -DER_INPROGRESS);
 		default:
@@ -1472,8 +1486,8 @@ out:
 	D_DEBUG(DB_TRACE, "Register DTX record for "DF_DTI
 		": lid=%d entry %p, type %d, %s ilog entry, rc %d\n",
 		DP_DTI(&dth->dth_xid),
-		DAE_LID((struct vos_dtx_act_ent *)dth->dth_ent), dth->dth_ent,
-		type, dth->dth_modify_shared ? "has" : "has not", rc);
+		dth->dth_ent == NULL ? 0 : DAE_LID((struct vos_dtx_act_ent *)dth->dth_ent),
+		dth->dth_ent, type, dth->dth_modify_shared ? "has" : "has not", rc);
 
 	return rc;
 }
@@ -1992,6 +2006,9 @@ vos_dtx_post_handle(struct vos_container *cont,
 	for (i = 0; i < count; i++) {
 		if (daes[i] == NULL)
 			continue;
+
+		if (abort && daes[i]->dae_dth != NULL)
+			daes[i]->dae_dth->dth_cancelled = 1;
 
 		d_iov_set(&kiov, &DAE_XID(daes[i]), sizeof(DAE_XID(daes[i])));
 		rc = dbtree_delete(cont->vc_dtx_active_hdl, BTR_PROBE_EQ,
