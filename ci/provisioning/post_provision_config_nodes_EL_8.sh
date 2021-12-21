@@ -6,24 +6,6 @@ LSB_RELEASE=redhat-lsb-core
 EXCLUDE_UPGRADE=dpdk,fuse,mercury,daos,daos-\*
 
 bootstrap_dnf() {
-    # Use Artifactory
-    if ! pushd /etc/yum.repos.d/; then
-        echo "Failed to chdir /etc/yum.repos.d/"
-        exit 1
-    fi
-    if ! rm -f *; then
-        echo "Failed to remove repo files"
-        exit 1
-    fi
-    if ! curl -f -O 'https://repo-stage.dc.hpdd.intel.com/artifactory/repo-files/daos_ci-centos8.repo'; then
-        echo "Failed to fetch repo file"
-        exit 1
-    fi
-    if ! popd; then
-        echo "Failed to return to previous directory"
-        exit 1
-    fi
-
     systemctl enable postfix.service
     systemctl start postfix.service
 }
