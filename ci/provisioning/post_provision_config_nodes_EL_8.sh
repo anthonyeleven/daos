@@ -111,11 +111,11 @@ post_provision_config_nodes() {
     fi
     rm -f /etc/profile.d/openmpi.sh
     rm -f /tmp/daos_control.log
-    retry_cmd 360 dnf -y install $LSB_RELEASE
+    RETRY_COUNT=1 retry_cmd 360 dnf -y install $LSB_RELEASE
 
     # shellcheck disable=SC2086
     if [ -n "$INST_RPMS" ]; then
-        if ! retry_cmd 360 dnf -y install $INST_RPMS; then
+        if ! RETRY_COUNT=1 retry_cmd 360 dnf -y install $INST_RPMS; then
             rc=${PIPESTATUS[0]}
             dump_repos
             exit "$rc"
@@ -127,7 +127,7 @@ post_provision_config_nodes() {
     lsb_release -a
 
     # now make sure everything is fully up-to-date
-    if ! retry_cmd 600 dnf -y upgrade --exclude "$EXCLUDE_UPGRADE"; then
+    if ! RETRY_COUNT=1 retry_cmd 600 dnf -y upgrade --exclude "$EXCLUDE_UPGRADE"; then
         dump_repos
         exit 1
     fi
