@@ -26,7 +26,7 @@ func TestAgent_FabricInterface_AddProvider(t *testing.T) {
 		expFI    *FabricInterface
 	}{
 		"nil": {
-			provider: "ofi+sockets",
+			provider: "ofi+tcp",
 		},
 		"empty": {
 			fi: &FabricInterface{
@@ -250,7 +250,7 @@ func TestAgent_NUMAFabric_GetDevice(t *testing.T) {
 			expErr: errors.New("nil NUMAFabric"),
 		},
 		"empty": {
-			provider:    "ofi+sockets",
+			provider:    "ofi+tcp",
 			nf:          newNUMAFabric(nil),
 			netDevClass: netdetect.Loopback,
 			expErr:      errors.New("no suitable fabric interface"),
@@ -279,7 +279,7 @@ func TestAgent_NUMAFabric_GetDevice(t *testing.T) {
 			expErr:      errors.New("provider is required"),
 		},
 		"type not found": {
-			provider: "ofi+sockets",
+			provider: "ofi+tcp",
 			nf: &NUMAFabric{
 				numaMap: map[int][]*FabricInterface{
 					0: {
@@ -303,7 +303,7 @@ func TestAgent_NUMAFabric_GetDevice(t *testing.T) {
 			expErr:      errors.New("no suitable fabric interface"),
 		},
 		"choose first device": {
-			provider: "ofi+sockets",
+			provider: "ofi+tcp",
 			nf: &NUMAFabric{
 				numaMap: map[int][]*FabricInterface{
 					0: {
@@ -328,7 +328,7 @@ func TestAgent_NUMAFabric_GetDevice(t *testing.T) {
 			},
 		},
 		"choose later device": {
-			provider: "ofi+sockets",
+			provider: "ofi+tcp",
 			nf: &NUMAFabric{
 				numaMap: map[int][]*FabricInterface{
 					0: {
@@ -361,7 +361,7 @@ func TestAgent_NUMAFabric_GetDevice(t *testing.T) {
 			},
 		},
 		"nothing on NUMA node": {
-			provider: "ofi+sockets",
+			provider: "ofi+tcp",
 			nf: &NUMAFabric{
 				numaMap: map[int][]*FabricInterface{
 					0: {
@@ -383,7 +383,7 @@ func TestAgent_NUMAFabric_GetDevice(t *testing.T) {
 			},
 		},
 		"type not found on NUMA node": {
-			provider: "ofi+sockets",
+			provider: "ofi+tcp",
 			nf: &NUMAFabric{
 				numaMap: map[int][]*FabricInterface{
 					0: {
@@ -414,7 +414,7 @@ func TestAgent_NUMAFabric_GetDevice(t *testing.T) {
 			},
 		},
 		"manual FI matches any": {
-			provider: "ofi+sockets",
+			provider: "ofi+tcp",
 			nf: &NUMAFabric{
 				numaMap: map[int][]*FabricInterface{
 					0: {
@@ -445,7 +445,7 @@ func TestAgent_NUMAFabric_GetDevice(t *testing.T) {
 			},
 		},
 		"load balancing": {
-			provider: "ofi+sockets",
+			provider: "ofi+tcp",
 			nf: &NUMAFabric{
 				numaMap: map[int][]*FabricInterface{
 					0: {
@@ -489,7 +489,7 @@ func TestAgent_NUMAFabric_GetDevice(t *testing.T) {
 			},
 		},
 		"validating IPs fails": {
-			provider: "ofi+sockets",
+			provider: "ofi+tcp",
 			nf: &NUMAFabric{
 				numaMap: map[int][]*FabricInterface{
 					0: {
@@ -586,7 +586,7 @@ func TestAgent_NUMAFabric_GetDevice(t *testing.T) {
 			},
 		},
 		"trim domain when not needed": {
-			provider: "ofi+sockets",
+			provider: "ofi+tcp",
 			nf: &NUMAFabric{
 				numaMap: map[int][]*FabricInterface{
 					0: {
@@ -723,13 +723,13 @@ func TestAgent_NUMAFabricFromScan(t *testing.T) {
 		"include lo": {
 			input: []*netdetect.FabricScan{
 				{
-					Provider:    "ofi+sockets",
+					Provider:    "ofi+tcp",
 					DeviceName:  "test0",
 					NUMANode:    1,
 					NetDevClass: netdetect.Ether,
 				},
 				{
-					Provider:    "ofi+sockets",
+					Provider:    "ofi+tcp",
 					DeviceName:  "lo",
 					NUMANode:    1,
 					NetDevClass: netdetect.Loopback,
@@ -740,12 +740,12 @@ func TestAgent_NUMAFabricFromScan(t *testing.T) {
 					{
 						Name:        "test0",
 						NetDevClass: netdetect.Ether,
-						Providers:   []string{"ofi+sockets"},
+						Providers:   []string{"ofi+tcp"},
 					},
 					{
 						Name:        "lo",
 						NetDevClass: netdetect.Loopback,
-						Providers:   []string{"ofi+sockets"},
+						Providers:   []string{"ofi+tcp"},
 					},
 				},
 			},
@@ -754,7 +754,7 @@ func TestAgent_NUMAFabricFromScan(t *testing.T) {
 		"multiple devices": {
 			input: []*netdetect.FabricScan{
 				{
-					Provider:    "ofi+sockets",
+					Provider:    "ofi+tcp",
 					DeviceName:  "test0",
 					NUMANode:    1,
 					NetDevClass: netdetect.Ether,
@@ -782,14 +782,14 @@ func TestAgent_NUMAFabricFromScan(t *testing.T) {
 					{
 						Name:        "test2",
 						NetDevClass: netdetect.Ether,
-						Providers:   []string{"ofi+sockets"},
+						Providers:   []string{"ofi+tcp"},
 					},
 				},
 				1: {
 					{
 						Name:        "test0",
 						NetDevClass: netdetect.Ether,
-						Providers:   []string{"ofi+sockets"},
+						Providers:   []string{"ofi+tcp"},
 					},
 				},
 			},
@@ -801,7 +801,7 @@ func TestAgent_NUMAFabricFromScan(t *testing.T) {
 			},
 			input: []*netdetect.FabricScan{
 				{
-					Provider:    "ofi+sockets",
+					Provider:    "ofi+tcp",
 					DeviceName:  "test0",
 					NUMANode:    2,
 					NetDevClass: netdetect.Ether,
@@ -813,7 +813,7 @@ func TestAgent_NUMAFabricFromScan(t *testing.T) {
 					NetDevClass: netdetect.Infiniband,
 				},
 				{
-					Provider:    "ofi+sockets",
+					Provider:    "ofi+tcp",
 					DeviceName:  "test2",
 					NUMANode:    1,
 					NetDevClass: netdetect.Ether,
@@ -831,7 +831,7 @@ func TestAgent_NUMAFabricFromScan(t *testing.T) {
 						Name:        "test2",
 						NetDevClass: netdetect.Ether,
 						Domain:      "test2_alias",
-						Providers:   []string{"ofi+sockets"},
+						Providers:   []string{"ofi+tcp"},
 					},
 				},
 				2: {
@@ -839,7 +839,7 @@ func TestAgent_NUMAFabricFromScan(t *testing.T) {
 						Name:        "test0",
 						NetDevClass: netdetect.Ether,
 						Domain:      "test0_alias",
-						Providers:   []string{"ofi+sockets"},
+						Providers:   []string{"ofi+tcp"},
 					},
 				},
 			},
@@ -848,7 +848,7 @@ func TestAgent_NUMAFabricFromScan(t *testing.T) {
 		"multiple providers per device": {
 			input: []*netdetect.FabricScan{
 				{
-					Provider:    "ofi+sockets",
+					Provider:    "ofi+tcp",
 					DeviceName:  "test0",
 					NUMANode:    1,
 					NetDevClass: netdetect.Ether,
@@ -860,7 +860,7 @@ func TestAgent_NUMAFabricFromScan(t *testing.T) {
 					NetDevClass: netdetect.Infiniband,
 				},
 				{
-					Provider:    "ofi+sockets",
+					Provider:    "ofi+tcp",
 					DeviceName:  "test1",
 					NUMANode:    0,
 					NetDevClass: netdetect.Infiniband,
@@ -871,7 +871,7 @@ func TestAgent_NUMAFabricFromScan(t *testing.T) {
 					{
 						Name:        "test1",
 						NetDevClass: netdetect.Infiniband,
-						Providers:   []string{"ofi+verbs", "ofi+sockets"},
+						Providers: []string{"ofi+verbs", "ofi+tcp"},
 					},
 				},
 				1: {

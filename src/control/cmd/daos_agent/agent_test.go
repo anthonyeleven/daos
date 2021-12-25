@@ -127,7 +127,7 @@ func TestAgent_MultiProcess_AttachInfoCache(t *testing.T) {
 
 	srvResp := &mgmtpb.GetAttachInfoResp{
 		ClientNetHint: &mgmtpb.ClientNetHint{
-			Provider:    "tcp+sockets",
+			Provider:    "tcp+tcp",
 			NetDevClass: netdetect.Ether,
 		},
 	}
